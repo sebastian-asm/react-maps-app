@@ -23,7 +23,7 @@ export const Loading = () => {
           <line x1="6" y1="12" x2="3" y2="12" />
           <line x1="7.75" y1="7.75" x2="5.6" y2="5.6" />
         </svg>
-        <span className="text-purple-600 block mt-1.5">
+        <span className="text-purple-600 block mt-1.5 text-sm font-bold">
           Obteniendo la localización
         </span>
       </div>

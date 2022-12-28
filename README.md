@@ -2,3 +2,5 @@
 
 - React Context
 - Geolocation API
+- Tailwind
+- Mapbox
