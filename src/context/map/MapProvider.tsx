@@ -1,7 +1,9 @@
 import { useContext, useEffect, useReducer } from 'react';
 
-import { Map, Marker, Popup } from 'mapbox-gl';
+import { AnySourceData, LngLatBounds, Map, Marker, Popup } from 'mapbox-gl';
 
+import { directionsApi } from '../../apis';
+import { DirectionsResponse } from '../../interfaces/directions';
 import { MapContext } from './MapContext';
 import { mapReducer } from './mapReducer';
 import { PlacesContext } from '../';
@@ -36,7 +38,7 @@ export const MapProvider = ({ children }: Props) => {
       const [lng, lat] = place.center;
       const popup = new Popup().setHTML(`
         <p class="text-sm text-purple-600 font-bold">${place.text}</p>
-        <span class="text-xs text-gray-400">${place.place_name}</span>
+        <span class="text-xs text-gray-600">${place.place_name}</span>
       `);
 
       const newMarker = new Marker()
@@ -59,8 +61,78 @@ export const MapProvider = ({ children }: Props) => {
     });
   };
 
+  const getRouteBetweenPoints = async (
+    start: [number, number],
+    end: [number, number]
+  ) => {
+    const resp = await directionsApi.get<DirectionsResponse>(
+      `/${start.join(',')};${end.join(',')}`
+    );
+
+    const { geometry } = resp.data.routes[0];
+    const { coordinates: coords } = geometry;
+    const bounds = new LngLatBounds(start, start);
+
+    for (const coord of coords) {
+      const newCoord: [number, number] = [coord[0], coord[1]];
+      bounds.extend(newCoord);
+    }
+
+    // mostrar ambos puntos en el mapa
+    state.map?.fitBounds(bounds, {
+      padding: 100,
+    });
+
+    // polyline
+    const sourceData: AnySourceData = {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: coords,
+            },
+          },
+        ],
+      },
+    };
+
+    // haciendo 'limpieza' antes de volver a marca 'Cómo llegar'
+    if (state.map?.getLayer('Routes')) {
+      state.map.removeLayer('Routes');
+      state.map.removeSource('Routes');
+    }
+
+    // 'Routes' es un id aleatorio
+    state.map?.addSource('Routes', sourceData);
+    state.map?.addLayer({
+      id: 'Routes',
+      type: 'line',
+      source: 'Routes',
+      layout: {
+        'line-cap': 'round',
+        'line-join': 'round',
+      },
+      paint: {
+        'line-color': 'purple',
+        'line-width': 3,
+      },
+    });
+
+    // obteniendo los kms y minutos de distancia entre un punto y otro
+    // const { distance, duration } = resp.data.routes[0];
+    // const minutes = Math.floor(duration / 60);
+    // let kms = distance / 1000;
+    // kms = Math.round(kms * 100);
+    // kms /= 100;
+  };
+
   return (
-    <MapContext.Provider value={{ ...state, setMap }}>
+    <MapContext.Provider value={{ ...state, setMap, getRouteBetweenPoints }}>
       {children}
     </MapContext.Provider>
   );

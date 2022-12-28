@@ -24,9 +24,5 @@ export const MapView = () => {
 
   if (isLoading) return <Loading />;
 
-  return (
-    <div ref={mapId} className="h-screen w-screen">
-      {userLocation?.join(' - ')}
-    </div>
-  );
+  return <div ref={mapId} className="h-screen w-screen"></div>;
 };
